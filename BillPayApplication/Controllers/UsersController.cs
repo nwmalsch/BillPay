@@ -10,118 +10,77 @@ using BillPayApplication.Models;
 
 namespace BillPayApplication.Controllers
 {
-    public class UsersController : Controller
+    public class UsersController: Controller
     {
-        private BillPayDBEntities db = new BillPayDBEntities();
+        // GET: Account
 
-        // GET: Users
         public ActionResult Index()
         {
-            return View(db.Users.ToList());
+            using (BillPayDBEntities db = new BillPayDBEntities())
+            {
+                return View(db.Users.ToList());
+            }
         }
 
-        // GET: Users/Details/5
-        public ActionResult Details(int? id)
-        {
-            if (id == null)
-            {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            }
-            User user = db.Users.Find(id);
-            if (user == null)
-            {
-                return HttpNotFound();
-            }
-            return View(user);
-        }
-
-        // GET: Users/Create
         public ActionResult Create()
         {
             return View();
         }
 
-        // POST: Users/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "UserID,FirstName,LastName,Email,Password")] User user)
+        public ActionResult Create(User user)
         {
             if (ModelState.IsValid)
             {
-                db.Users.Add(user);
-                db.SaveChanges();
-                return RedirectToAction("Index");
-            }
+                using (BillPayDBEntities db = new BillPayDBEntities())
+                {
+                    db.Users.Add(user);
+                    db.SaveChanges();
+                }
 
-            return View(user);
+                ModelState.Clear();
+                ViewBag.Message = user.FirstName + " " + user.LastName + " Registration successful.";
+            }
+            return View();
         }
 
-        // GET: Users/Edit/5
-        public ActionResult Edit(int? id)
+        public ActionResult Login()
         {
-            if (id == null)
-            {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            }
-            User user = db.Users.Find(id);
-            if (user == null)
-            {
-                return HttpNotFound();
-            }
-            return View(user);
+            return View();
         }
 
-        // POST: Users/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "UserID,FirstName,LastName,Email,Password")] User user)
+        public ActionResult Login(User user)
         {
-            if (ModelState.IsValid)
+            using (BillPayDBEntities db = new BillPayDBEntities())
             {
-                db.Entry(user).State = EntityState.Modified;
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                var usr = db.Users.Single(u => u.Email == user.Email && u.Password == user.Password);
+
+                if (usr != null)
+                {
+                    Session["UserID"] = usr.UserID.ToString();
+                    Session["Email"] = usr.Email.ToString();
+                    return RedirectToAction("LoggedIn");
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Invalid Email or password.");
+                }
+
+                return View();
             }
-            return View(user);
         }
 
-        // GET: Users/Delete/5
-        public ActionResult Delete(int? id)
+        public ActionResult LoggedIn()
         {
-            if (id == null)
+            if (Session["UserID"] != null)
             {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+                return View();
             }
-            User user = db.Users.Find(id);
-            if (user == null)
+            else
             {
-                return HttpNotFound();
+                return RedirectToAction("LogIn");
             }
-            return View(user);
-        }
-
-        // POST: Users/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(int id)
-        {
-            User user = db.Users.Find(id);
-            db.Users.Remove(user);
-            db.SaveChanges();
-            return RedirectToAction("Index");
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                db.Dispose();
-            }
-            base.Dispose(disposing);
         }
     }
 }
